@@ -1,0 +1,59 @@
+
+name: Build LNReader APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "lnreader-2_1_4-modified.zip"
+      - ".github/workflows/build.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract project
+        run: |
+          mkdir project
+          unzip lnreader-2_1_4-modified.zip -d project
+          echo "PROJECT_DIR=$GITHUB_WORKSPACE/project/lnreader-2.1.4" >> $GITHUB_ENV
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: "11.20.0"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        working-directory: project/lnreader-2.1.4
+        run: pnpm install --frozen-lockfile
+
+      - name: Build APK
+        working-directory: project/lnreader-2.1.4
+        run: pnpm run build:release:android
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: LNReader-APK
+          path: project/lnreader-2.1.4/android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
